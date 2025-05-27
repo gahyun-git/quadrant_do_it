@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:quadrant_do_it/models/matrix_category.dart';
 import '../../features/auth/auth_page.dart';
@@ -28,4 +27,4 @@ final appRouter = GoRouter(
     GoRoute(path: '/settings', builder: (context, state) => const SettingsPage()),
     GoRoute(path: '/paywall', builder: (context, state) => const PaywallPage()),
   ],
-); 
+);

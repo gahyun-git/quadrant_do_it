@@ -8,7 +8,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'features/settings/settings_provider.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/providers/language_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
+import 'models/matrix_category.dart';
+import 'package:home_widget/home_widget.dart';
 
 import 'features/auth/auth_page.dart';
 import 'features/matrix/matrix_page.dart';
@@ -18,17 +24,16 @@ import 'features/magic_todo/magic_todo_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/matrix/matrix_category_provider.dart';
 import 'features/matrix/matrix_category_list_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'models/matrix_category.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await dotenv.load(fileName: '.env');
-    await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANNON_KEY']!,
-    );
+  await dotenv.load(fileName: '.env');
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANNON_KEY']!,
+  );
+    await HomeWidget.setAppGroupId('group.com.example.quadrantDoIt');
   } catch (e, s) {
     print('초기화 에러: $e\n$s');
   }
@@ -40,12 +45,33 @@ class QuadrantDoItApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
+    final themeMode = ref.watch(themeNotifierProvider);
+    final language = ref.watch(languageNotifierProvider);
+    Locale? locale;
+    if (language == 'English') {
+      locale = const Locale('en');
+    } else if (language == '日本語') {
+      locale = const Locale('ja');
+    } else {
+      locale = const Locale('ko');
+    }
     return MaterialApp(
       title: 'Quadrant Do It',
+      themeMode: themeMode,
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: themeMode,
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.appDelegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko'),
+        Locale('en'),
+        Locale('ja'),
+      ],
       home: const MainNavScreen(),
     );
   }
@@ -84,7 +110,6 @@ class MainNavScreen extends ConsumerStatefulWidget {
 
 class _MainNavScreenState extends ConsumerState<MainNavScreen> {
   bool _loading = true;
-  String? _lastMatrixId;
   int _currentIndex = 0;
 
   @override
@@ -95,9 +120,7 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
 
   Future<void> _loadLastMatrix() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastId = prefs.getString('last_matrix_category_id');
     setState(() {
-      _lastMatrixId = lastId;
       _loading = false;
     });
   }
@@ -133,12 +156,12 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: '매트릭스'),
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: '타이머'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '캘린더'),
-          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'Magic'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.dashboard), label: AppLocalizations.of(context)!.matrix),
+          BottomNavigationBarItem(icon: const Icon(Icons.timer), label: AppLocalizations.of(context)!.timer),
+          BottomNavigationBarItem(icon: const Icon(Icons.calendar_today), label: AppLocalizations.of(context)!.calendar),
+          BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome), label: AppLocalizations.of(context)!.magicTodo),
+          BottomNavigationBarItem(icon: const Icon(Icons.settings), label: AppLocalizations.of(context)!.settings),
         ],
       ),
     );

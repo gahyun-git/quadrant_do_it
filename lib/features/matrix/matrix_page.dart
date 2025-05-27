@@ -220,36 +220,6 @@ class _MatrixPageState extends ConsumerState<MatrixPage> {
               ],
             ),
           ),
-          if (_isDragging)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 60), // 네비게이션바 위
-                child: DragTarget<Map<String, dynamic>>(
-                  onWillAccept: (data) => true,
-                  onAccept: (data) {
-                    _deleteTodo(data['id']);
-                    setState(() { _isDragging = false; _draggingTodo = null; });
-                  },
-                  builder: (context, candidate, rejected) {
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: candidate.isNotEmpty ? Colors.red : Colors.grey.shade300,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          if (candidate.isNotEmpty)
-                            BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 16),
-                        ],
-                      ),
-                      child: Icon(Icons.delete, color: candidate.isNotEmpty ? Colors.white : Colors.black54, size: 40),
-                    );
-                  },
-                ),
-              ),
-            ),
         ],
       ),
     );

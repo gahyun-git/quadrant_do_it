@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import '../providers/magic_todo_provider.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-typedef MagicCallback = void Function(String text);
-
-class MagicTodoInput extends StatelessWidget {
-  final MagicCallback? onMagic;
+class MagicTodoInput extends ConsumerWidget {
+  final void Function(String text)? onMagic;
   const MagicTodoInput({super.key, this.onMagic});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -25,9 +25,14 @@ class MagicTodoInput extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: () {
-              if (onMagic != null) onMagic!(controller.text);
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+              // 매직투두 AI 기능과 연결
+              final todos = await ref.read(magicTodoServiceProvider).generateTodos(text);
+              ref.read(magicTodoNotifierProvider.notifier).setTodos(todos);
               controller.clear();
+              if (onMagic != null) onMagic!(text);
             },
             child: const Text('Magic!'),
           ),

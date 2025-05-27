@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../timer_provider.dart';
+import 'package:flutter/cupertino.dart';
 
 class PomodoroTimer extends ConsumerWidget {
   const PomodoroTimer({super.key});
@@ -20,26 +21,48 @@ class PomodoroTimer extends ConsumerWidget {
           GestureDetector(
             onTap: state.isRunning ? null : () async {
               int selected = state.totalSeconds ~/ 60;
-              final min = await showDialog<int>(
+              final min = await showModalBottomSheet<int>(
                 context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('타이머 시간 설정'),
-                  content: StatefulBuilder(
-                    builder: (context, setStateDialog) {
-                      return DropdownButton<int>(
-                        value: selected,
-                        items: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
-                            .map((m) => DropdownMenuItem(value: m, child: Text('$m분')))
-                            .toList(),
-                        onChanged: (v) => setStateDialog(() => selected = v!),
-                      );
-                    },
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
-                    ElevatedButton(onPressed: () => Navigator.pop(context, selected), child: const Text('설정')),
-                  ],
-                ),
+                backgroundColor: Colors.transparent,
+                builder: (context) {
+                  int tempSelected = selected;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).dialogBackgroundColor,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    padding: const EdgeInsets.only(top: 16, bottom: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('타이머 시간 선택', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(
+                          height: 180,
+                          child: CupertinoPicker(
+                            scrollController: FixedExtentScrollController(initialItem: selected - 1),
+                            itemExtent: 40,
+                            onSelectedItemChanged: (i) => tempSelected = i + 1,
+                            children: List.generate(120, (i) => Center(child: Text('${i + 1}분', style: const TextStyle(fontSize: 20)))),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('취소'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, tempSelected),
+                              child: const Text('설정'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
               );
               if (min != null) notifier.setMinutes(min);
             },
@@ -64,8 +87,6 @@ class PomodoroTimer extends ConsumerWidget {
                   children: [
                     Text('$minutes:$secs', style: const TextStyle(fontSize: 54, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    if (!state.isRunning)
-                      const Text('시간을 누르면 변경', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -97,18 +118,18 @@ class _PomodoroCirclePainter extends CustomPainter {
   _PomodoroCirclePainter({required this.percent});
   @override
   void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()
-      ..color = Colors.grey.shade900
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 22;
     final fgPaint = Paint()
       ..color = Colors.red
       ..style = PaintingStyle.stroke
       ..strokeWidth = 22
       ..strokeCap = StrokeCap.round;
+    final bgPaint = Paint()
+      ..color = Colors.black // 배경색(다크모드면 Theme 적용 가능)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 22;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 12;
-    // 전체(빨강) 먼저 그림
+    // 항상 전체 빨간 띠를 그림
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -3.141592/2,
@@ -116,12 +137,12 @@ class _PomodoroCirclePainter extends CustomPainter {
       false,
       fgPaint,
     );
-    // 남은 부분(검정)으로 덮어줌
+    // 진행된 부분만 검정색(배경색)으로 덮어서 반시계방향으로 줄어드는 효과
     if (percent < 1.0) {
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
-        -3.141592/2 + 2 * 3.141592 * (1 - percent),
-        2 * 3.141592 * percent,
+        -3.141592/2,
+        -2 * 3.141592 * (1 - percent),
         false,
         bgPaint,
       );

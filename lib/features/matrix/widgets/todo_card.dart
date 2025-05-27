@@ -100,21 +100,6 @@ class TodoCard extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 2, right: 1, top: 3),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: IconButton(
-                  icon: const Icon(Icons.edit, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  splashRadius: 12,
-                  onPressed: onEdit,
-                  tooltip: '수정',
-                ),
-              ),
-            ),
           ],
         ),
       ),

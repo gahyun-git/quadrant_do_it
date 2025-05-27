@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+// import 'package:google_sign_in/google_sign_in.dart';
+// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+// 카카오 로그인 패키지: flutter_kakao_login 또는 kakao_flutter_sdk
+// import 'package:flutter_kakao_login/flutter_kakao_login.dart';
+// 이메일 로그인은 firebase_auth 등 사용 가능
 
 enum SocialType { google, kakao, apple, email }
 
@@ -45,8 +50,34 @@ class SocialLoginButton extends StatelessWidget {
         ),
         icon: Icon(icon, size: 24),
         label: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        onPressed: () {
-          // TODO: 실제 소셜 로그인 연동
+        onPressed: () async {
+          switch (type) {
+            case SocialType.google:
+              // TODO: 실제 Google OAuth 연동
+              // GoogleSignIn _googleSignIn = GoogleSignIn(
+              //   clientId: 'YOUR_GOOGLE_CLIENT_ID', // <-- 여기에 실제 클라이언트 ID 입력
+              // );
+              // final account = await _googleSignIn.signIn();
+              // if (account != null) { /* 로그인 성공 처리 */ }
+              break;
+            case SocialType.kakao:
+              // TODO: 실제 Kakao OAuth 연동
+              // final kakao = FlutterKakaoLogin();
+              // final result = await kakao.logIn();
+              // if (result.status == KakaoLoginStatus.loggedIn) { /* 로그인 성공 처리 */ }
+              break;
+            case SocialType.apple:
+              // TODO: 실제 Apple OAuth 연동
+              // final credential = await SignInWithApple.getAppleIDCredential(
+              //   scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+              // );
+              // if (credential != null) { /* 로그인 성공 처리 */ }
+              break;
+            case SocialType.email:
+              // TODO: 이메일 로그인(예: Firebase Auth 등)
+              // Navigator.push(context, MaterialPageRoute(builder: (_) => EmailLoginPage()));
+              break;
+          }
         },
       ),
     );

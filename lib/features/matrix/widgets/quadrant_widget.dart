@@ -29,64 +29,149 @@ class QuadrantWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DragTarget<Map<String, dynamic>>(
-      onWillAcceptWithDetails: (details) => details.data['quadrant'] != quadrant['key'],
-      onAcceptWithDetails: (details) {
-        onMove(details.data['id'], quadrant['key']);
-      },
-      builder: (context, candidate, rejected) => Container(
-        decoration: BoxDecoration(
-          color: (quadrant['color'] as Color).withAlpha(20),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: (quadrant['color'] as Color).withAlpha(candidate.isNotEmpty ? 179 : 77),
-            width: 2,
+      onWillAccept: (data) => data != null && data['quadrant'] != quadrant['key'],
+      onAccept: (data) => onMove(data['id'], quadrant['key']),
+      builder: (context, candidate, rejected) {
+        final isActive = candidate.isNotEmpty;
+        return Container(
+          decoration: BoxDecoration(
+            color: quadrant['color'].withOpacity(0.07),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isActive ? quadrant['color'] : quadrant['color'].withOpacity(0.3),
+              width: isActive ? 3 : 1.5,
+            ),
           ),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: quadrant['color'] as Color,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  quadrant['label'] as String,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: quadrant['color'] as Color,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.add, size: 20),
-                  onPressed: () => _showAddDialog(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: todos.isEmpty
-                  ? Center(
-                      child: Text(
-                        '할 일이 없습니다',
-                        style: TextStyle(color: Colors.grey.shade500),
+          margin: const EdgeInsets.all(2),
+          child: Column(
+            children: [
+              GestureDetector(
+                onLongPress: () => _showAddDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  color: Colors.transparent,
+                  child: Row(
+                    children: [
+                      Text(
+                        quadrant['label'],
+                        style: TextStyle(
+                          color: quadrant['color'],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    )
-                  : ListView(
-                      children: todos.map((t) => _buildTodoItem(context, _parseTodo(t))).toList(),
-                    ),
-            ),
-          ],
-        ),
-      ),
+                      const Spacer(),
+                      Text(
+                        '${todos.length}개',
+                        style: TextStyle(
+                          color: quadrant['color'],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: todos.isEmpty
+                    ? Center(
+                        child: Text(
+                          '할 일이 없습니다',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      )
+                    : ListView(
+                        children: todos.map((t) {
+                          final todo = _parseTodo(t);
+                          return Dismissible(
+                            key: ValueKey(todo['id']),
+                            direction: DismissDirection.horizontal,
+                            confirmDismiss: (direction) async {
+                              if (direction != DismissDirection.endToStart) {
+                                // 왼쪽 스와이프 - 삭제
+                                return await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('삭제 확인'),
+                                    content: Text('정말 "${todo['title']}" 할일을 삭제할까요?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('취소'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('삭제'),
+                                      ),
+                                    ],
+                                  ),
+                                ) ?? false;
+                              } else {
+                                // 오른쪽 스와이프 - 수정
+                                await _showEditDialog(context, todo);
+                                return false;
+                              }
+                            },
+                            onDismissed: (direction) {
+                              if (direction == DismissDirection.endToStart) {
+                                onDelete(todo['id']);
+                              }
+                            },
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            secondaryBackground: Container(
+                              color: Colors.blue,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: const Icon(Icons.edit, color: Colors.white),
+                            ),
+                            child: LongPressDraggable<Map<String, dynamic>>(
+                              data: todo,
+                              feedback: Material(
+                                color: Colors.transparent,
+                                child: SizedBox(
+                                  width: MediaQuery.of(context).size.width / 2 - 48,
+                                  child: TodoCard(
+                                    title: todo['title'] as String,
+                                    isDone: todo['isDone'] as bool,
+                                    date: todo['date'] as DateTime?,
+                                    time: todo['time'] as TimeOfDay?,
+                                  ),
+                                ),
+                              ),
+                              childWhenDragging: Opacity(
+                                opacity: 0.3,
+                                child: TodoCard(
+                                  title: todo['title'] as String,
+                                  isDone: todo['isDone'] as bool,
+                                  date: todo['date'] as DateTime?,
+                                  time: todo['time'] as TimeOfDay?,
+                                ),
+                              ),
+                              child: TodoCard(
+                                title: todo['title'] as String,
+                                isDone: todo['isDone'] as bool,
+                                date: todo['date'] as DateTime?,
+                                time: todo['time'] as TimeOfDay?,
+                                onChanged: (val) => onToggle(todo['id'], val),
+                                onEdit: () => _showEditDialog(context, todo),
+                                onDelete: () => onDelete(todo['id']),
+                              ),
+                              onDragStarted: () => onDragStarted?.call(todo),
+                              onDragEnd: (_) => onDragEnded?.call(),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -107,49 +192,11 @@ class QuadrantWidget extends StatelessWidget {
     };
   }
 
-  Widget _buildTodoItem(BuildContext context, Map<String, dynamic> todo) {
-    return LongPressDraggable<Map<String, dynamic>>(
-      data: todo,
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width / 2 - 48,
-          child: TodoCard(
-            title: todo['title'] as String,
-            isDone: todo['isDone'] as bool,
-            date: todo['date'] as DateTime?,
-            time: todo['time'] as TimeOfDay?,
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: TodoCard(
-          title: todo['title'] as String,
-          isDone: todo['isDone'] as bool,
-          date: todo['date'] as DateTime?,
-          time: todo['time'] as TimeOfDay?,
-        ),
-      ),
-      child: TodoCard(
-        title: todo['title'] as String,
-        isDone: todo['isDone'] as bool,
-        date: todo['date'] as DateTime?,
-        time: todo['time'] as TimeOfDay?,
-        onChanged: (val) => onToggle(todo['id'], val),
-        onEdit: () => _showEditDialog(context, todo),
-        onDelete: () => onDelete(todo['id']),
-      ),
-      onDragStarted: () => onDragStarted?.call(todo),
-      onDragEnd: (_) => onDragEnded?.call(),
-    );
-  }
-
   Future<void> _showAddDialog(BuildContext context) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => TodoDialog(
-        title: '${quadrant['label']}에 할 일 추가',
+        title: '${quadrant['label']}',
         initialTitle: '',
         initialDate: null,
         initialTime: null,
