@@ -15,6 +15,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'models/matrix_category.dart';
 import 'package:home_widget/home_widget.dart';
+import 'core/widgets/animated_fab_menu.dart';
 
 import 'features/auth/auth_page.dart';
 import 'features/matrix/matrix_page.dart';
@@ -108,14 +109,23 @@ class MainNavScreen extends ConsumerStatefulWidget {
   ConsumerState<MainNavScreen> createState() => _MainNavScreenState();
 }
 
-class _MainNavScreenState extends ConsumerState<MainNavScreen> {
+class _MainNavScreenState extends ConsumerState<MainNavScreen> with SingleTickerProviderStateMixin {
   bool _loading = true;
   int _currentIndex = 0;
+  late final PageController _pageController;
+  bool _isFabMenuOpen = false;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _loadLastMatrix();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLastMatrix() async {
@@ -123,6 +133,18 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
     setState(() {
       _loading = false;
     });
+  }
+
+  void _navigateToPage(int index) {
+    setState(() {
+      _currentIndex = index;
+      _isFabMenuOpen = false;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -150,19 +172,54 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
       const MagicTodoPage(),
       const SettingsPage(),
     ];
+
+    final fabItems = [
+      FabMenuItem(
+        heroTag: 'matrix',
+        icon: const Icon(Icons.dashboard),
+        onPressed: () => _navigateToPage(0),
+      ),
+      FabMenuItem(
+        heroTag: 'timer',
+        icon: const Icon(Icons.timer),
+        onPressed: () => _navigateToPage(1),
+      ),
+      FabMenuItem(
+        heroTag: 'calendar',
+        icon: const Icon(Icons.calendar_today),
+        onPressed: () => _navigateToPage(2),
+      ),
+      FabMenuItem(
+        heroTag: 'magic',
+        icon: const Icon(Icons.auto_awesome),
+        onPressed: () => _navigateToPage(3),
+      ),
+      FabMenuItem(
+        heroTag: 'settings',
+        icon: const Icon(Icons.settings),
+        onPressed: () => _navigateToPage(4),
+      ),
+    ];
+
     return Scaffold(
-      body: pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(icon: const Icon(Icons.dashboard), label: AppLocalizations.of(context)!.matrix),
-          BottomNavigationBarItem(icon: const Icon(Icons.timer), label: AppLocalizations.of(context)!.timer),
-          BottomNavigationBarItem(icon: const Icon(Icons.calendar_today), label: AppLocalizations.of(context)!.calendar),
-          BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome), label: AppLocalizations.of(context)!.magicTodo),
-          BottomNavigationBarItem(icon: const Icon(Icons.settings), label: AppLocalizations.of(context)!.settings),
-        ],
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: pages,
+      ),
+      floatingActionButton: AnimatedFabMenu(
+        isOpen: _isFabMenuOpen,
+        onToggle: () {
+          setState(() {
+            _isFabMenuOpen = !_isFabMenuOpen;
+          });
+        },
+        items: fabItems,
+        onItemSelected: () {
+          setState(() {
+            _isFabMenuOpen = false;
+          });
+        },
       ),
     );
   }
